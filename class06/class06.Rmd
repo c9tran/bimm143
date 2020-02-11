@@ -2,7 +2,7 @@
 title: 'Class 6: R Functions'
 author: "Cindy Tran"
 date: "1/23/2020"
-output:
+output: github_document 
   html_document: default
   word_document: default
 ---
