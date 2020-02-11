@@ -35,8 +35,8 @@ rescale <- function(x, na.rm=TRUE, plot=FALSE, ...) {
 ```
 Ex:
 ```{r}
-rescale(1:10)
-rescale("S") # gives error message
+#rescale(1:10)
+#rescale("S") # gives error message
 ```
 
 Exercise
@@ -56,7 +56,7 @@ is_both_na <- function(x,y){
 }
 is_both_na(x,y) #gives same vector as if you wrote them individually
 z <- c(3, NA)
-is_both_na(x,z) # gives the error message because the vectors are not the smae length
+#is_both_na(x,z) # gives the error message because the vectors are not the smae length
 ```
 
 both_na3 function
@@ -86,6 +86,13 @@ rm(x), rm(y), rm(z) removes the variables stored.
 
 We want to see which genes are present in both data sets. 
 ```{r}
+# Start with a simple version of the problem
+df1 <- data.frame(IDs=c("gene1", "gene2", "gene3"),
+                  exp=c(2,1,1),
+                  stringsAsFactors=FALSE)
+df2 <- data.frame(IDs=c("gene2", "gene4", "gene3", "gene5"),
+                  exp=c(-2, NA, 1, 2),
+                  stringsAsFactors=FALSE)
 x <- df1$IDs
 y <- df2$IDs
 
@@ -104,6 +111,7 @@ cbind(x[x%in%y], y[y%in%x]) #binds different vectors across the columns
 
 Another way you can make a function highlight code -> go to code -> extract function -> name it
 ```{r}
+
 x <- df1$IDs
 y <- df2$IDs
 
@@ -122,7 +130,7 @@ gene_intersect2 <- function(df1, df2) {
 gene_intersect3 <- function(df1, df2, gene.colname= "IDs") {
   cbind(df1[df1[,gene.colname]%in%df2[,gene.colname], ], df2[df2[,gene.colname]%in%df1[,gene.colname], ], "exp")
 }
-gene_intersect3(df1,df2, gene.colname = "new_name")
+gene_intersect3(df1,df2, gene.colname = "IDs")
 
 gene_intersect4 <- function(df1, df2, gene.colname= "IDs") {
   df1.name <- df1[, gene.colname] #This here returns a name
@@ -133,7 +141,7 @@ gene_intersect4 <- function(df1, df2, gene.colname= "IDs") {
   
   cbind(df1[df1.inds,], df2[df2.inds,], "exp")
 }
-gene_intersect4(df1, df2, gene.colname = "new_name")
+gene_intersect4(df1, df2, gene.colname = "IDs")
 ```
 
 Sidenote: To change a column name
@@ -143,7 +151,7 @@ colnames(df2) <- c("new_name", "exp")
 ## Introduction to ggplot2
 First we are going to have to install the package:
 ```{r}
-install.packages('ggplot2')
+# install.packages('ggplot2')
 ```
 Search R Graph in google to get R graph gallery... This is all the plots you can generate in R.
 ```{r}
