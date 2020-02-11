@@ -1,0 +1,202 @@
+---
+title: "class09"
+author: "Cindy Tran"
+date: "2/4/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## K-means Clustering
+```{r}
+tmp <- c(rnorm(30,-3), rnorm(30,3))
+# This rnorm is used to make up some data. 30 points drawn from a normal distribution all around -3 and then +3
+x <- cbind(x=tmp, y=rev(tmp))
+# cbind combines R objects by columns. We have a vector of 60 things (30 and 30) and taking it and combining it to the reverse of tmp (rev(tmp)). Example is the the column is red -3 and blue 3 so it makes it into blue 3 on red -3 of a two column to have the centers be (-3, 3) and (3, -3).
+plot(x)
+```
+Use the kmeans() function setting k to 2 and nstart=20 and print out the results:
+```{r}
+km <- kmeans(x, centers = 2, nstart = 20)
+```
+
+Questions:
+1. There are 30 points in each cluster.
+2. The size is 30 in each cluster. The cluster assignment/membership is in the cluster component shown as clustering vector.The cluster center is (-2.772581,  2.887287) and (2.887287, -2.772581).
+```{r}
+km$size
+km$cluster
+km$centers
+table(km$cluster)
+  #Tells you how many of each thing you have in your vector
+```
+
+Now plot x colors by the kmeans cluster assignment and add cluster centers as blue points:
+```{r}
+plot(x, col=km$cluster+4)
+points(km$centers, col="blue", pch=15)
+```
+
+## Heirarchical Clustering
+
+The main Hierarchical clustering function in R is called `hclust()`.
+An important point her is that you have to calcuate the distance matrix deom your input data before calling `hclust()`.
+
+For this, we will use `dist()`.
+```{r}
+# We will again use our x again from above...
+d <- dist(x)
+hc <- hclust(d)
+hc
+#This is not very helpful so let's plot our data...
+```
+
+Folks, this data is usually seen in a plot...
+```{r}
+plot(hc)
+# The labels are the points. In the first tree is 1-30 and the second tree is 31-60. The height is the distance that the points are apart from one another. 
+```
+
+To get cluster membership vector I need to cut the tree at a certain height to yield my seperate cluster branches.You want to cut the tree right below the highest height...
+```{r}
+plot(hc)
+abline(h=6, col="red", lty=2)
+#this draws a line at the h=6
+cutree(hc, h=6)
+# This gives you a matrix of 1 and 2 to say which clluster the point went in like the cluster value of kmeans.
+```
+
+Let's take a look at what happens when you cut at h=3.
+```{r}
+plot(hc)
+abline(h=3, col="blue")
+cutree(hc, h=3)
+# You get 6 clusters if you cut it here. 
+```
+
+With `cutree()` you could tell it how many groups you want with k.
+```{r}
+cutree(hc, k=4)
+```
+ 
+Looking at the your turn for looking at the different ways to determine a cluster:
+```{r}
+ # Step 1. Generate some example data for clustering
+x <- rbind(
+  matrix(rnorm(100, mean=0, sd = 0.3), ncol = 2),   # c1
+  matrix(rnorm(100, mean = 1, sd = 0.3), ncol = 2), # c2
+  matrix(c(rnorm(50, mean = 1, sd = 0.3),           # c3
+           rnorm(50, mean = 0, sd = 0.3)), ncol = 2))
+colnames(x) <- c("x", "y")
+# Step 2. Plot the data without clustering
+plot(x)
+# Step 3. Generate colors for known clusters
+#         (just so we can compare to hclust results)
+col <- as.factor( rep(c("c1","c2","c3"), each=50) )
+plot(x, col=col)
+# There are three things here but the colors overlap making the boundaries not very clear
+```
+
+Our job is to convert the above into hierarchical clustering...
+```{r}
+dist <- dist(x)
+hi <- hclust(dist)
+hi
+
+plot(hi)
+```
+
+Now can you return two clusters to get cluster membership vector...
+```{r}
+plot(hi)
+abline(h=2.6, col="red", lty=2)
+p <- cutree(hi, k=2)
+p
+table(p)
+```
+
+Try 3 clusters...
+```{r}
+plot(hi)
+abline(h=2, col="red", lty=2)
+
+grps <- cutree(hi, k=3)
+grps
+
+table(grps) # Use this to see how many members in each cluster.
+```
+
+Let's plot the one with the 3 clusters...
+```{r}
+plot(x, col=grps)
+# There is no overlaping of colors or points anymore. 
+```
+
+## Hands on Worksheet
+
+Read the data in:
+```{r}
+x <- read.csv("UK_foods.csv", row.names = 1)
+x
+```
+
+How many rows and colums in UK_foods?
+```{r}
+nrow(x) #17 rows
+ncol(x) #5 columns but we changed it to 4 with row.names from earlier
+```
+
+Let's make some plots to explore our datat a bit more. 
+```{r}
+barplot(as.matrix(x), beside=T, col=rainbow(nrow(x)))
+# beside= FALSE stacks them on top of one another
+barplot(as.matrix(x), beside=F, col=rainbow(nrow(x)))
+```
+
+A "pairs" plot can be used to compare all the contries one on one against one another with all the categories on the plot.
+Check out the `pairs()` plot:
+```{r}
+pairs(x, col=rainbow(10), pch=16)
+```
+This plot plots the countries versus one another but places it in a matrix to see all the different foods all at once. Each colored dot is a different food category and the ones not on the line show that the category is different. There are duplicate plots because the countries are the margins. 
+
+
+Principal Component Analysis (PCA) `prcomp()` function
+```{r}
+pca <- prcomp(t(x))
+#t is taking the transpose to rotate our data so the row is our data of interest
+pca
+#there's a lot of information in this and it is very complicated 
+
+#can use the summary to see your data
+summary(pca)
+# would write this as PC1 accounts for more than 67% of the sample variance.
+```
+
+What is in my result object 'pca'? I can check the attributes...
+```{r}
+attributes(pca)
+# gives you all the attributes in the pca object (the $ sign)
+```
+
+Then you can call what you want..
+```{r}
+plot(pca$x[,1], pca$x[,2], xlab = "PC1", ylab = "PC2")
+text(pca$x[,1], pca$x[,2], colnames(x), col=c("black", "red", "blue", "green"))
+```
+
+To see what the percentage of coverage of each PCA...
+```{r}
+v <- round( pca$sdev^2/sum(pca$sdev^2) * 100 )
+v
+```
+
+Now we see that N. Ireland is different but how is it different?
+```{r}
+par(mar=c(10, 3, 0.35, 0))
+barplot( pca$rotation[,1], las=2 )
+# This shows how the food is different by country as in which country has more or what food and how much.
+```
+
