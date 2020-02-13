@@ -7,7 +7,7 @@ output: github_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## PDB Statistics
+## Section 1: PDB Statistics
 Here we inspect the types of structures in the main databases for 3D bimolecular data - the PDB.
 
 > Q1: Determine the percentage of structures solved by X-Ray and Electron Microscopy. 
@@ -34,3 +34,46 @@ round(protein, 2)
 > Q3: Type HIV in the PDB website search box on the home page and determine how many HIV-1 protease structures are in the current PDB?
 
 There are 1289 HIV-1 protease structures in the PDB database.
+
+## Section 2: Using VMD
+Used the VMD application to create a structure of HIV that is saved as hiv_pic.tiff.tga
+
+## Hands-on Part 2: 
+
+First we have to install all the packages using this code:
+"install.packages("bio3d")
+install.packages("ggplot2")
+install.packages("ggrepel")
+install.packages("devtools")
+install.packages("BiocManager")
+
+BiocManager::install("msa")
+devtools::install_bitbucket("Grantlab/bio3d-view")"
+
+Read a single PDB structure into R
+```{r}
+library(bio3d)
+pdb <- read.pdb("1hsg")
+pdb
+```
+
+What is this pdb object that is stored? It is a list of 8 things.
+```{r}
+attributes(pdb) # use this to see the headers
+pdb$atom
+```
+
+Let's write a new file that just has the protein only:
+```{r}
+pdb <- read.pdb("1HSG")
+ligand <- atom.select(pdb, "ligand", value = TRUE) #this function chooses the ligand only from the pdb file which would be for the drug
+protein <- atom.select(pdb, "protein", value = TRUE) #for the protein
+```
+
+Now we want to write out these new PDB objects with the `write.pdb()` function:
+```{r}
+write.pdb(ligand, file = "1hsg_ligand.pdb")
+write.pdb(protein, file = "1hsg_protein.pdb")
+```
+
+
