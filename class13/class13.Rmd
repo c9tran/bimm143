@@ -17,10 +17,12 @@ file.name <- get.pdb("1hsg")
 #Download PDB file
 hiv <- read.pdb(file.name)
 ```
+
 You can get a quick summary of the pdb structure by calling hiv:
 ```{r}
 hiv
 ```
+
 > Q1: What is the name of the two non protein resid values in this structure? What does resid correspond to and how would you get a listing of all reside values in this structure?
   - the names are HOH (127) and MK1 (1)
 
