@@ -41,6 +41,13 @@ lig
 prot
 ```
 
+## Part 2: Inspecting dock results
+```{r}
+library(bio3d)
+res <- read.pdb("all.pdbqt", multi = TRUE)
+write.pdb(res, "results.pdb")
+```
+
 
 
 
