@@ -213,7 +213,7 @@ plot( res$log2FoldChange,  -log(res$padj),
  col=mycols, ylab="-Log(P-value)", xlab="Log2(FoldChange)" )
 
 abline(v=c(-2,2), col="cyan", lty=2)
-abline(h=-log(0.1), col="cyan", lty=2)
+abline(h=-log(0.05), col="cyan", lty=2)
 ```
 
 Let's do the same with ggplot...
