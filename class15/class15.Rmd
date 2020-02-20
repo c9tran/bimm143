@@ -1,0 +1,231 @@
+---
+title: "Class 15: Transcriptomics and the analysis of RNA-seq data"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Import today's data
+The data for this hands-on session comes from a published RNA-seq experiment where airway smooth muscle cells were treated with dexamethasone, a synthetic glucocorticoid steroid with anti-inflammatory effects (Himes et al. 2014).
+
+Glucocorticoids are used, for example, by people with asthma to reduce inflammation of the airways. The anti-inflammatory effects on airway smooth muscle (ASM) cells has been known for some time but the underlying molecular mechanisms are unclear.
+
+First thing to do is to install necessary packages in the console...(not in R script). You would use this code:
+`install.packages("BiocManager")`
+`BiocManager::install()`
+`BiocManager::install("DESeq2")`
+You could then use `library(DESeq2)` to check to see if your packages installed correctly.
+
+Next, download the two data files from the class website in Lecture 15 and read them into R.
+```{r}
+counts <- read.csv("airway_scaledcounts.csv", stringsAsFactors = FALSE) 
+# the extra factor here is for categorical things to do statistics and ploting so here we want to make sure they are not doing it but setting it to FALSE
+# This is the data for all the transcripts of the genes with all the different experiments conducted with the "SRR.."
+
+metadata <-  read.csv("airway_metadata.csv", stringsAsFactors = FALSE)
+# Has the data that tells what the experiments "SRR.." were that were conducted in the counts data
+```
+
+Now take a look at each...
+```{r}
+head(counts)
+#counts is the number of times the gene was turned into mRNA, the number of transcripts
+head(metadata)
+```
+
+How many genes are we dealing with?
+```{r}
+nrow(counts)
+# 38694 genes present
+```
+
+## Section 3: Toy differential gene expression
+
+Lets perform some exploratory differential gene expression analysis to distinguish between the treated and control data because the count data right now has it alternating with "control, treatment, control, treatment..."
+
+We want to calculate the mean of each of the genes of all the control and the treatment experiments (two values) to compare them. We want to calculate the average counts per gene of the control samples and then the drug tested samples. We will then compare these values to see if there is a difference overall between control and treated samples for a given gene. 
+This is our metadata info that tells me where our control and treated smaples are (i.e. which columns in counts). I then accessed the control only rows in the metadata. 
+```{r}
+control <- metadata[metadata$dex == "control", ]
+# gives you the ids of the control smaples
+counts[, control$id]
+control
+```
+
+Then taking our control vector we can calculate the averages. Now use the $id of the control data to access the control columns in `counts` and calculate the average. 
+```{r}
+control.mean <- rowSums( counts[ , control$id]) / nrow(control)
+names(control.mean) <- counts$ensgene
+control.mean
+# This creates a vector of the averages of the controls for each of the genes. 
+```
+
+Now lets do the same for the *treated* samples...
+
+I accessed the treated only rows in the metadata. 
+```{r}
+treated <- metadata[metadata$dex == "treated", ]
+# gives you the ids of the control smaples
+counts[, treated$id]
+treated
+```
+
+Then taking our treated vector we can calculate the averages. Now use the $id of the treated data to access the treated columns in `counts` and calculate the average. 
+```{r}
+treated.mean <- rowSums( counts[ , treated$id]) / nrow(treated)
+names(treated.mean) <- counts$ensgene
+treated.mean
+# This creates a vector of the averages of the controls for each of the genes. 
+```
+
+We will then combine our meancount data for bookkeeping purposes. 
+```{r}
+meancounts <- data.frame(control.mean, treated.mean)
+meancounts
+# This creates a new dataframe with the averages of both the treated and control for each gene
+```
+
+Plot the treated vs. control to see the effect of the drug. If the drug had no effect, the plot would show a linear line because the control data would be the same as the treated for that gene. 
+```{r}
+plot(meancounts)
+```
+
+From this, you see a dense spot where a lot of the genes are overlapping. The data is very skewed, so lets try and plot the log of this data to get a more distributed plot. 
+```{r}
+plot(meancounts, log = "xy")
+```
+This graph follows the straight line, but it is still different in that there is still variation. This means that the drug is having some effects for some genes. If it is above the line, that means there is more transcripts for the treated, and if it is below, then there is more counts for the control. 
+We can find candidate differentially expressed genes by looking for genes with a large change between control and dex-treated samples. We usually look at the log2 of the fold change, because this has better mathematical properties.
+
+Here we calculate log2foldchange, add it to our meancounts data.frame.
+```{r}
+meancounts$log2fc <- log2(meancounts[,"treated.mean"]/meancounts[,"control.mean"])
+#the new column we created is log2 fold change that includes the fraction of the treated means over the count means and then taking the log of that fraction value
+head(meancounts)
+# NaN means that we are taking the log of 0. A negative value means that the treated is smaller than the control because you are taking the log of a decimal
+```
+
+Now we are going to clean up our data. Remove any gene that has zero average counts.
+```{r}
+zero.vals <- which(meancounts[,1:2]==0, arr.ind=TRUE)
+# the which function tells you which value in the data frame was true. It gives you the position if that value
+#the arr.ind tells you the column and row that the value is in
+to.rm <- unique(zero.vals[,1])
+#unique is telling you which row has it with without repeating because you dont need to see it twice because each row is a gene. 
+mycounts <- meancounts[-to.rm,]
+# this line of code removes those genes with NaN from our data. It does this by printing out a new vector with anything but those rows.
+head(mycounts)
+```
+
+How many genes do i have left?
+```{r}
+nrow(mycounts)
+# We now only have 21817 genes but we started with 38694 genes.
+```
+
+A common threshold used for calling something differentially expressed is a log2(FoldChange) of greater than 2 or less than -2.
+```{r}
+up.ind <- mycounts$log2fc > 2
+sum(up.ind)
+# the sum tells you how many trues you have  and there are 250 that are above 2. 
+down.ind <- mycounts$log2fc < (-2)
+sum(down.ind)
+# There are 367 that are below -2.
+```
+
+## DESeq2 analysis: do this properly with DESeq2
+
+DESeq2 is an R package for analyzing count-based NGS data like RNA-seq. It is available from Bioconductor. Bioconductor is a project to provide tools for analyzing high-throughput genomic data including RNA-seq, ChIP-seq and arrays.
+
+Load them into the R session:
+```{r}
+library(DESeq2)
+citation("DESeq2")
+```
+
+Set up input for DESeq by specifying count data, metadata, and the experiment design (i.e. which comparisons we are interested in). This code will set up the controls we need for DESeq2. 
+```{r}
+dds <- DESeqDataSetFromMatrix(countData=counts, 
+                              colData=metadata, 
+                              design=~dex, 
+                              tidy=TRUE)
+dds
+```
+
+```{r}
+dds <- DESeq(dds)
+
+```
+
+```{r}
+res <- results(dds)
+```
+
+Let's make a volcano plot. All the points is a gene. We are plotting the p-vaue here and taking the -log of it because the p-value is very small. Upregulated are on the right (the positive) and the downregulated is the left (more negative).
+```{r}
+plot(res$log2FoldChange, res$padj)
+# This isnt very useful because the significant values were interested in are the 0.05 which are not shown here.
+```
+
+Graph the log to show what we want.
+```{r}
+plot(res$log2FoldChange, log(res$padj))
+# But now the volcano is upside down.
+```
+
+Now we have to fix the axis..
+```{r}
+plot(res$log2FoldChange, -log(res$padj))
+# This is now the volcano that we want
+```
+
+Now let's annotate this graph so it is easier to see the differences and significance. 
+```{r}
+res$sig <- res$padj<0.05 & abs(res$log2FoldChange)>2
+
+# Set the color palette for our plot
+palette( c("gray","blue") )
+
+plot( res$log2FoldChange,  -log(res$padj), 
+ col=res$sig+1, ylab="-Log(P-value)", xlab="Log2(FoldChange)")
+
+# Add some cut-off lines
+abline(v=c(-2,2), col="darkgray", lty=2)
+abline(h=-log(0.1), col="darkgray", lty=2)
+```
+
+Now let's custom this some more...
+```{r}
+# Reset the color palette
+palette("default")    
+
+# Setup our custom point color vector 
+mycols <- rep("orange", nrow(res))
+mycols[ abs(res$log2FoldChange) > 2 ]  <- "lime green" 
+
+inds <- (res$padj < 0.01) & (abs(res$log2FoldChange) > 2 )
+mycols[ inds ] <- "light blue"
+
+#Volcano plot with custom colors 
+plot( res$log2FoldChange,  -log(res$padj), 
+ col=mycols, ylab="-Log(P-value)", xlab="Log2(FoldChange)" )
+
+abline(v=c(-2,2), col="cyan", lty=2)
+abline(h=-log(0.1), col="cyan", lty=2)
+```
+
+Let's do the same with ggplot...
+Load it first:
+```{r}
+library(ggplot2)
+```
+
+```{r}
+ggplot(as.data.frame(res), aes(log2FoldChange, -log10(pvalue), col=sig)) + 
+    geom_point() + 
+    ggtitle("Volcano plot")
+#The warning is okay
+```
+
