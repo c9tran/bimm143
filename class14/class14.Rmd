@@ -1,0 +1,41 @@
+---
+title: "Class 14: Galaxy"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## AnalyzeRNA-Seq by genotypes
+
+Here we read the results of RNA-Seq for about ~230 samples (people) with different genotypes for the rs8067378 Asthma associated SNP.
+
+```{r}
+expr <- read.table("rs8067378_ENSG00000172057.6.txt")
+head(expr)
+```
+
+If you wanted to know the average expression value of folks with A/A, you would have to get the mean of the rows that just contain A/A.
+Extract the A/A rows:
+```{r}
+inds <- expr$geno == "A/A"
+expr[ inds, ] #gives you all the A/A
+expr[inds, ]$exp #gives you the expression of all the rows with A/A
+summary(expr[inds, "exp"]) #mean is 31.82
+```
+
+Now do the same thing with G/G:
+```{r}
+GG <- expr$geno == "G/G"
+expr[ GG, ] #gives you all the A/A
+expr[GG, ]$exp #gives you the expression of all the rows with A/A
+summary(expr[GG, "exp"]) #mean is 20.594
+```
+
+Graph this to see it easier:
+```{r}
+boxplot(exp~geno,data=expr, notch=TRUE) #if the notch does not overlap, that means that the data is statistically significant
+#this plots the expression values and the grouping is the genotype
+```
+
