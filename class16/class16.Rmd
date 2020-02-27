@@ -1,0 +1,198 @@
+---
+title: "Class 16:Pathway Analysis from RNA-Seq"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Section 1: Differential Expression Analysis
+
+The data for for hands-on session comes from GEO entry: GSE37704, which is associated with the following publication:
+
+Trapnell C, Hendrickson DG, Sauvageau M, Goff L et al. "Differential analysis of gene regulation at transcript resolution with RNA-seq". Nat Biotechnol 2013 Jan;31(1):46-53. PMID: 23222703
+The authors report on differential analysis of lung fibroblasts in response to loss of the developmental transcription factor HOXA1. Their results and others indicate that HOXA1 is required for lung fibroblast and HeLa cell cycle progression. In particular their analysis show that "loss of HOXA1 results in significant expression level changes in thousands of individual transcripts, along with isoform switching events in key regulators of the cell cycle". For our session we have used their Sailfish gene-level estimated counts and hence are restricted to protein-coding genes only.
+
+We are using the DESeq2 package so we have to load it into our R Markdown first.
+```{r}
+library(DESeq2)
+```
+
+We will then load our data files into our work space:
+```{r}
+# Import metadata and take a peak
+colData = read.csv("GSE37704_metadata.csv", row.names=1)
+head(colData)
+
+# Import countdata
+countData = read.csv("GSE37704_featurecounts.csv", row.names=1)
+head(countData)
+```
+
+There are `r nrow(countData)` genes in this data set and `r ncol(countData)` experiments (samples). By doing the back ticks, the Knit file will run the code and print out the actually number in that position. 
+
+It looks like there is a funny extra 'length' column in our countData that we need to remove. Now we need to get rid of the length column in the countData because it needs to match the rows in the metaData.
+```{r}
+countData <- as.matrix(countData[, -1])
+head(countData)
+```
+
+There is a little more tidying work to do. There's data in here with out any expression. Therefore, we have to get rid of them because why would we test if it is significantly different if we don't have any counts/data anyways (i.e. zero counts in all experiments).
+
+Lets take the rowSums() and exclude the rows with zero values:
+```{r}
+rowSums(countData) == 0 #gives you a vector of TRUE and FALSE of if there is a 0 there
+
+# Filter count data where you have 0 read count across all samples.
+countData <- countData[rowSums(countData)!=0, ]
+head(countData)
+```
+
+Check how many genes we have left: (15975)
+```{r}
+nrow(countData)
+```
+
+## Running DESeq2
+
+Now we get to run DESeq on our data.
+```{r}
+dds <- DESeqDataSetFromMatrix(countData=countData,colData=colData,design=~condition)
+
+dds <- DESeq(dds) #this line runs the DESeq function
+```
+
+Lets see our results 
+```{r}
+res <- results(dds)
+res
+```
+
+## Volcano Plot
+
+This is a summary volcano plot of our results to date.
+```{r}
+plot(res$log2FoldChange, res$padj)
+# This is no bueno because it plots all the pvalues whether it is significant of not
+```
+
+```{r}
+plot(res$log2FoldChange, -log(res$padj))
+# need to do this because all the stuff you really want is the significant pvalues below 0.05. The - flips the graph.
+abline(h=-log(0.05), col="red")
+abline(v=c(-2,2), col="red")
+# We are drawing this line to look at the significant regions which is the section of the outer rectangles above the red line. This is because everything above the bottom line is statically signifant and everything to the left and right means it has increased or decreased more than twice. 
+```
+
+Lets add some color.
+```{r}
+# Make a color vector for all genes
+mycols <- rep("gray", nrow(res))
+
+# Color red the genes with absolute fold change above 2
+mycols[ abs(res$log2FoldChange) > 2 ] <- "red"
+
+# Color blue those with adjusted p-value less than 0.01
+#  and absolute fold change more than 2
+inds <- (res$padj<0.01) & (abs(res$log2FoldChange) > 2 )
+mycols[ inds ] <- "blue"
+
+plot( res$log2FoldChange, -log(res$padj), col=mycols, xlab="Log2(FoldChange)", ylab="-Log(P-value)" )
+```
+
+## Adding gene annotation
+
+Since we mapped and counted against the Ensembl annotation, our results only have information about Ensembl gene IDs. However, our pathway analysis downstream will use KEGG pathways, and genes in KEGG pathways are annotated with Entrez gene IDs. So lets add them as we did the last day.
+
+I would install these with `BiocManager::install("AnnotationDbi")` and `BiocManager::install("org.Hs.eg.db")` in the console.
+
+Now to use these packages, you have to first call them into the library.
+```{r}
+library("AnnotationDbi")
+library("org.Hs.eg.db")
+
+# What is avaliable in the ord.Hs.eg.db dataset?
+columns(org.Hs.eg.db)
+```
+
+Lets add extra annotaion to our result object.
+```{r}
+res$symbol = mapIds(org.Hs.eg.db,
+                    keys=row.names(res), 
+                    keytype="ENSEMBL",
+                    column="SYMBOL",
+                    multiVals="first")
+# The symbols for each gene have been added to the results
+res$entrez = mapIds(org.Hs.eg.db,
+                    keys=row.names(res),
+                    keytype="ENSEMBL",
+                    column="ENTREZID",
+                    multiVals="first")
+# This is going to add the entrez for each
+
+head(res) 
+```
+
+## Pathway Analysis 
+
+Now we have our geneIDs in the correct format we can do pathway analysis. 
+
+Here we are going to use the gage package for pathway analysis. Once we have a list of enriched pathways, we're going to use the pathview package to draw pathway diagrams, shading the molecules in the pathway by their degree of up/down-regulation.
+
+First, we need to install the packages in the R console using `BiocManager::install( c("pathview", "gage", "gageData"))`.
+
+We have to load them up to use them.
+```{r}
+library(pathview)
+library(gage)
+library(gageData)
+```
+
+We are going to look at the first 3 pathways of the data to see if these pathways overlap with our differences:
+```{r}
+data(kegg.sets.hs)
+data(sigmet.idx.hs)
+
+# Focus on signaling and metabolic pathways only
+kegg.sets.hs = kegg.sets.hs[sigmet.idx.hs]
+
+# Examine the first 3 pathways
+head(kegg.sets.hs, 3)
+```
+
+Make an input vector of our numeric quantity of interest i.e. flod chande vauses and make sure it has ENTREZ gene names associated with it. We are going to take the entrez column and add it to the foldcahnges column. 
+```{r}
+foldchanges = res$log2FoldChange
+names(foldchanges) = res$entrez
+head(foldchanges)
+```
+
+Now run **gage** with this input vector and our KEGG genesets.
+```{r}
+# Get the results
+keggres = gage(foldchanges, gsets=kegg.sets.hs)
+```
+
+What is in our results? We can use the `attributes()` fucntion to see what is returned here.
+```{r}
+attributes(keggres)
+```
+
+Lets look at a few of them:
+```{r}
+# Look at the first few down (less) pathways
+head(keggres$less)
+```
+
+We use the KEGG pathway ID from our top hit along with our `foldchange` vector to view our results as a more useful figure.
+```{r}
+pathview(gene.data=foldchanges, pathway.id="hsa04110") # This creates figures in you files 
+```
+To include the file generated above in the document:
+```{r}
+knitr::include_graphics("hsa04110.pathview.png")
+```
+
+
+
