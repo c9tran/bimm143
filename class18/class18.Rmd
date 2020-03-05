@@ -1,0 +1,103 @@
+---
+title: "Class 18: Investigating cancer genomics datasets"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Connect to the NCI-GDC database
+
+The NCI-GDC (cancer genomics commons) is a major portal for cancer genomics data.
+
+Here we use the bioconductor package **GenomicDataCommons** to talk to this database and download data etc. all from R. The first thing we are going to have to do is install new packages in the console using: `BiocManager::install( c("GenomicDataCommons", "TCGAbiolinks", "maftools") )`
+
+Once installed, we must  input it into the library to use it:
+```{r}
+library(GenomicDataCommons)
+library(TCGAbiolinks)
+library(maftools)
+```
+
+Now lets check on GDC status to see if we can talk to the databse:
+```{r}
+status()
+```
+
+## Querying the GDC from R
+
+The are four main sets of metadata that we can query, namely `projects()`, `cases()`, `files()`, and `annotations()`. We will start with `projects()`:
+```{r}
+projects <- getGDCprojects()
+head(projects)
+```
+
+Then we will pull all the information about the cases and group the cases by the project type:
+```{r}
+cases_by_project <- cases() %>%
+  # %>% is the pipe operator in R that would take a vector and do the function you write after it which in this case its taking the cases function on it then running the facet and then aggregations on that data. This is clearer to read because you can read it like a sentence
+  facet("project.project_id") %>%
+  aggregations()
+head(cases_by_project)
+# doc-count is the number of cases there are and the FM-AD is the projects
+```
+
+## Plot this overview data
+
+Make a barplot of the information we just made:
+```{r}
+x <- cases_by_project$project.project_id
+head(x)
+barplot(x$doc_count)
+```
+
+Now try and plot it with log:
+```{r}
+barplot(x$doc_count, names.arg = x$key, log="y", las=2, col = "lightblue")
+```
+
+```{r}
+# Make a custom color vector for our plot
+colvec <- rep("lightblue", nrow(x))
+colvec[x$key == "TCGA-PAAD"] <- "red"
+
+# Plot with 'log' for y axis and rotate labels with 'las'
+barplot(x$doc_count, names.arg=x$key, log="y", col=colvec, las=2)
+```
+
+## Variant Analysis with R
+
+Find files avaliable for PAAD project that we can then examine variants from:
+```{r}
+maf.file <- GDCquery_Maf(tumor="PAAD", pipelines = "mutect")
+head(maf.file)
+```
+
+Read in the MAF file we found:
+```{r}
+vars = read.maf(maf = maf.file, verbose = FALSE)
+```
+
+Now make a summary plot of the data:
+```{r}
+plotmafSummary(vars)
+```
+
+## Oncoplots
+
+A very useful summary representation of this data can be obtained via so-called oncoplots, also known as waterfall plots.
+
+Make an oncoplot of the data:
+```{r}
+oncoplot(maf = vars, top = 10)
+```
+
+We can also send our plot to a PNG or PDF plot device directly, for example:
+```{r}
+# Oncoplot for our top 10 most frequently mutated genes
+pdf("oncoplot_panc.pdf")
+oncoplot(maf = vars, top = 10, fontSize = 12)
+dev.off()
+```
+
