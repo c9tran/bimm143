@@ -101,3 +101,71 @@ oncoplot(maf = vars, top = 10, fontSize = 12)
 dev.off()
 ```
 
+## Part 2:
+
+```{r}
+library(bio3d)
+```
+
+```{r}
+seqs <- read.fasta("lecture18_sequences.fa")
+#aln <- seqaln(seqs)
+#aln
+# we dont have muscle installed to run this code
+```
+
+Next we calculate identity per equivalent (i.e. aligned) position and then use this information to find non identical sites that do not contain gaps (i.e. indels):
+```{r}
+## Calculate positional identity scores
+ide <- conserv(seqs$ali, method="identity")
+mutant.sites <- which(ide < 1) 
+
+## Exclude gap possitions from analysis
+gaps <- gap.inspect(seqs)
+mutant.sites <- mutant.sites[mutant.sites %in% gaps$f.inds]
+
+mutant.sites
+```
+
+We are using the gap positions here and this is not what we want. So we need to exclude the gap positions:
+```{r}
+gaps <-gap.inspect(seqs)
+gaps$f.inds
+mutant.sites <- mutant.sites[mutant.sites %in% gaps$f.inds]
+mutant.sites
+```
+Make names for the outputs:
+```{r}
+## Make a "names" label for our output sequences (one per mutant)
+mutant.names <- paste0(seqs$ali["P53_wt",mutant.sites],
+                       mutant.sites,
+                       seqs$ali["P53_mutant",mutant.sites])
+
+mutant.names
+```
+
+Find the -8 before and the +8 after (i.e. all possible 9-mer sequences):
+```{r}
+start.position <- mutant.sites -8
+end.position <- mutant.sites +8
+start.position
+end.position
+```
+
+Finding what the amino acids are:
+```{r}
+#aln$ali[2,start.position[1]:end.position[1]]
+```
+
+An example of finding the mutant sites:
+```{r}
+x <- c(1:6)
+y <- c(1:4)
+x %in% y
+```
+
+This is the code for the mutant 9-mers labeled with their name:
+```{r}
+# write.fasta(seqs = store.seqs, ids = mutant.names, file = "mutantseqs.fa", gap = FALSE)
+```
+
