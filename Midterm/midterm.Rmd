@@ -1,0 +1,51 @@
+---
+title: "Midterm"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Finding a Gene project
+Question 7:
+
+Make a heatmap of the MSA data that is a fasta file:
+```{r}
+library(bio3d)
+tree <- read.fasta("phylogenic tree data.fst")
+head(tree)
+```
+
+Calculate a sequence identity matrix from the data:
+```{r}
+mat <- seqidentity(tree)
+mat
+```
+
+Make a heatmap:
+```{r}
+heatmap(mat, margins = c(12,12))
+```
+
+Generate a consensus sequence:
+```{r}
+new <- consensus(tree)
+```
+
+Search the main protein structure database for the most similar atomic resolution structures to the aligned sequences:
+```{r}
+h <- blast.pdb(new$seq)
+head(h)
+```
+```{r}
+pdb.annotate("6DU9")
+pdb.annotate("4KML")
+pdb.annotate("4YXL")
+```
+
+```{r}
+x <- blast.pdb(tree)
+head(x)
+```
+
