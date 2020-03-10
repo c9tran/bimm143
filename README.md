@@ -18,4 +18,4 @@ CLass 9 - [Analyzing High Dimensional Datasets and Unsupervised Learning](https:
 
 Class 10 - [Structural Bioinformatics: Analyzing Protein Structure and Function](https://github.com/c9tran/bimm143/blob/master/class10/class10.md)
 
-Class 12 - [Drug Discovery: Techniques and Analysis](https://github.com/c9tran/bimm143/tree/master/class12)
+Class 12 - [Drug Discovery: Techniques and Analysis](https://github.com/c9tran/bimm143/blob/master/class12/class12.md)
