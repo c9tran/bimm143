@@ -8,6 +8,10 @@ _Introductory Material: Working With R_
 
 Class 5 - [Basic Data Exploration in R HTML, MD, Rmd](https://github.com/c9tran/bimm143/tree/master/class05)
 
-Class 6 - [Creating R Functions](https://github.com/c9tran/bimm143/tree/master/class06) 
+Class 6 - [Creating R Functions](https://github.com/c9tran/bimm143/blob/master/class06/class06.md) 
 
-Class 7 - [R Packages, working with CRAN, and working with Bioconductor](https://github.com/c9tran/bimm143/tree/master/class07)
+Class 7 - [R Packages, working with CRAN, and working with Bioconductor](https://github.com/c9tran/bimm143/blob/master/class07/class07.md)
+
+CLass 8 - [An Introduction to Machine Learning (Heiarchical Clustering)](https://github.com/c9tran/bimm143/tree/master/class08)
+
+CLass 9 - [Analyzing High Dimensional Datasets and Unsupervised Learning](https://github.com/c9tran/bimm143/blob/master/class09/class09.md)
