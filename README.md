@@ -15,3 +15,7 @@ Class 7 - [R Packages, working with CRAN, and working with Bioconductor](https:/
 CLass 8 - [An Introduction to Machine Learning (Heiarchical Clustering)](https://github.com/c9tran/bimm143/tree/master/class08)
 
 CLass 9 - [Analyzing High Dimensional Datasets and Unsupervised Learning](https://github.com/c9tran/bimm143/blob/master/class09/class09.md)
+
+Class 10 - [Structural Bioinformatics: Analyzing Protein Structure and Function](https://github.com/c9tran/bimm143/blob/master/class10/class10.md)
+
+Class 12 - [Drug Discovery: Techniques and Analysis](https://github.com/c9tran/bimm143/tree/master/class12)
